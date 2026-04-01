@@ -1,0 +1,160 @@
+{
+  "id": "workflow-1775008476072",
+  "name": "init-proj",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "start-node-default",
+      "type": "start",
+      "name": "start-node-default",
+      "position": {
+        "x": -135,
+        "y": 90
+      },
+      "data": {
+        "label": "Start"
+      }
+    },
+    {
+      "id": "end_node_default",
+      "type": "end",
+      "name": "end_node_default",
+      "position": {
+        "x": 1455,
+        "y": 0
+      },
+      "data": {
+        "label": "End"
+      }
+    },
+    {
+      "id": "prompt-1775005816205",
+      "type": "prompt",
+      "name": "prompt-1775005816205",
+      "position": {
+        "x": 90,
+        "y": 15
+      },
+      "data": {
+        "label": "New Prompt",
+        "prompt": "1. /init\n2. git clone \"https://github.com/ktg-one/mcp-webdev\"\n3. npx in-memoria server\n4. Read ONBOARD.md\n5. sign contract\n",
+        "variables": {}
+      }
+    },
+    {
+      "id": "skill-1775007042958",
+      "type": "skill",
+      "name": "skill-lookup",
+      "position": {
+        "x": 1095,
+        "y": -15
+      },
+      "data": {
+        "name": "skill-lookup",
+        "description": "Activates when the user asks about Agent Skills, wants to find reusable AI capabilities, needs to install skills, or mentions skills for Claude. Use for discovering, retrieving, and installing skills.",
+        "skillPath": "C:\\Users\\kevin\\.claude\\skills\\skill-lookup\\SKILL.md",
+        "scope": "user",
+        "validationStatus": "valid",
+        "outputPorts": 1,
+        "source": "claude",
+        "executionMode": "execute",
+        "executionPrompt": "Find the appropriate skill for continuous use this run"
+      }
+    },
+    {
+      "id": "mcp-1775007205350",
+      "type": "mcp",
+      "name": "mcp-1775007205350",
+      "position": {
+        "x": 405,
+        "y": 0
+      },
+      "data": {
+        "mode": "aiParameterConfig",
+        "serverId": "context7",
+        "toolName": "resolve-library-id",
+        "toolDescription": "Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.\n\nYou MUST call this function before 'Query Documentation' tool to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.\n\nEach result includes:\n- Library ID: Context7-compatible identifier (format: /org/project)\n- Name: Library or package name\n- Description: Short summary\n- Code Snippets: Number of available code examples\n- Source Reputation: Authority indicator (High, Medium, Low, or Unknown)\n- Benchmark Score: Quality indicator (100 is the highest score)\n- Versions: List of versions if available. Use one of those versions if the user provides a version in their query. The format of the version is /org/project/version.\n\nFor best results, select libraries based on name match, source reputation, snippet coverage, benchmark score, and relevance to your use case.\n\nSelection Process:\n1. Analyze the query to understand what library/package the user is looking for\n2. Return the most relevant match based on:\n- Name similarity to the query (exact matches prioritized)\n- Description relevance to the query's intent\n- Documentation coverage (prioritize libraries with higher Code Snippet counts)\n- Source reputation (consider libraries with High or Medium reputation more authoritative)\n- Benchmark Score: Quality indicator (100 is the highest score)\n\nResponse Format:\n- Return the selected library ID in a clearly marked section\n- Provide a brief explanation for why this library was chosen\n- If multiple good matches exist, acknowledge this but proceed with the most relevant one\n- If no good matches exist, clearly state this and suggest query refinements\n\nFor ambiguous queries, request clarification before proceeding with a best-guess match.\n\nIMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.",
+        "parameters": [
+          {
+            "name": "query",
+            "type": "string",
+            "description": "The question or task you need help with. This is used to rank library results by relevance to what the user is trying to accomplish. The query is sent to the Context7 API for processing. Do not include any sensitive or confidential information such as API keys, passwords, credentials, personal data, or proprietary code in your query.",
+            "required": true
+          },
+          {
+            "name": "libraryName",
+            "type": "string",
+            "description": "Library name to search for and retrieve a Context7-compatible library ID.",
+            "required": true
+          }
+        ],
+        "aiParameterConfig": {
+          "description": "make a knowledge base of this projects codebase",
+          "timestamp": "2026-04-01T01:33:25.350Z"
+        },
+        "validationStatus": "valid",
+        "outputPorts": 1
+      }
+    },
+    {
+      "id": "skill-1775007625044",
+      "type": "skill",
+      "name": "gsd-new-project",
+      "position": {
+        "x": 735,
+        "y": -30
+      },
+      "data": {
+        "name": "gsd-new-project",
+        "description": "Initialize a new project with deep context gathering and PROJECT.md",
+        "skillPath": "C:\\Users\\kevin\\.copilot\\skills\\gsd-new-project\\SKILL.md",
+        "scope": "user",
+        "validationStatus": "valid",
+        "allowedTools": "Read, Bash, Write, Task, AskUserQuestion",
+        "outputPorts": 1,
+        "source": "copilot",
+        "executionMode": "execute"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "reactflow__edge-start-node-defaultout-prompt-1775005816205in",
+      "from": "start-node-default",
+      "to": "prompt-1775005816205",
+      "fromPort": "out",
+      "toPort": "in"
+    },
+    {
+      "id": "reactflow__edge-prompt-1775005816205out-mcp-1775007205350",
+      "from": "prompt-1775005816205",
+      "to": "mcp-1775007205350",
+      "fromPort": "out",
+      "toPort": "input"
+    },
+    {
+      "id": "reactflow__edge-mcp-1775007205350-skill-1775007625044input",
+      "from": "mcp-1775007205350",
+      "to": "skill-1775007625044",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "reactflow__edge-skill-1775007625044output-skill-1775007042958input",
+      "from": "skill-1775007625044",
+      "to": "skill-1775007042958",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "reactflow__edge-skill-1775007042958output-end_node_defaultin",
+      "from": "skill-1775007042958",
+      "to": "end_node_default",
+      "fromPort": "output",
+      "toPort": "in"
+    }
+  ],
+  "createdAt": "2026-04-01T01:54:36.072Z",
+  "updatedAt": "2026-04-01T01:54:36.072Z",
+  "subAgentFlows": []
+}

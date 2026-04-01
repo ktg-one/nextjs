@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Good'ai</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* Research-backed: Perth Disruptor palette + Canva kit blend */
+    --bg: #0C0C0C;
+    --surface: #151514;
+    --surface-raised: #1C1C1A;
+    --border: #2A2925;
+    --border-hover: #3D3A35;
+    --text: #D7D2CB;           /* Cottesloe Sand — warm, not clinical */
+    --text-bright: #EDE9E3;
+    --text-dim: #6B6560;
+    --accent: #D86A3D;         /* Silicon Copper — research-backed */
+    --accent-soft: #C4714D;
+    --accent-dim: rgba(216, 106, 61, 0.08);
+    --accent-glow: rgba(216, 106, 61, 0.04);
+    --blue: #00B4D8;           /* Ningaloo Blue — interactive states */
+    --blue-dim: rgba(0, 180, 216, 0.06);
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    cursor: none;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid rgba(216, 106, 61, 0.35);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease, border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+  }
+  .cursor.hovering {
+    width: 48px;
+    height: 48px;
+    border-color: rgba(216, 106, 61, 0.55);
+  }
+
+  /* Ambient glow that follows cursor */
+  .ambient {
+    position: fixed;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 65%);
+    transition: transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+    transform: translate(-50%, -50%);
+  }
+
+  /* Subtle grid */
+  .grid-bg {
+    position: fixed;
+    inset: -20px;
+    z-index: 0;
+    opacity: 0.018;
+    background-image:
+      linear-gradient(rgba(215, 210, 203, 0.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(215, 210, 203, 0.6) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  /* Vignette */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+  }
+
+  /* Main container */
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 40px;
+    transition: justify-content 0.6s ease;
+  }
+  .container.has-conversation {
+    justify-content: flex-start;
+    padding-top: 48px;
+  }
+
+  /* Wordmark */
+  .wordmark {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    margin-bottom: 56px;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: fadeUp 1s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
+    user-select: none;
+    transition: font-size 0.5s ease, margin-bottom 0.5s ease;
+    color: var(--text-bright);
+  }
+  .container.has-conversation .wordmark {
+    font-size: 20px;
+    margin-bottom: 28px;
+  }
+  .wordmark .apos {
+    color: var(--accent);
+    opacity: 0.7;
+  }
+
+  /* Subtitle */
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: -40px;
+    margin-bottom: 56px;
+    opacity: 0;
+    animation: fadeUp 1s cubic-bezier(0.23, 1, 0.32, 1) 0.55s forwards;
+  }
+  .container.has-conversation .subtitle {
+    display: none;
+  }
+
+  /* Input area */
+  .input-area {
+    width: 100%;
+    max-width: 540px;
+    opacity: 0;
+    transform: translateY(18px);
+    animation: fadeUp 1s cubic-bezier(0.23, 1, 0.32, 1) 0.7s forwards;
+  }
+
+  .input-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 20px 56px 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--text-bright);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    cursor: none;
+  }
+  .input-field::placeholder {
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+  .input-field:focus {
+    border-color: rgba(216, 106, 61, 0.25);
+    box-shadow: 0 0 0 4px var(--accent-dim), 0 8px 32px rgba(0,0,0,0.3);
+    background: var(--surface-raised);
+  }
+
+  .submit-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, background 0.3s ease;
+    cursor: none;
+  }
+  .submit-btn:hover {
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .submit-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .input-hint {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  /* Conversation */
+  .conversation {
+    width: 100%;
+    max-width: 540px;
+    margin-top: 24px;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 120px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .conversation::-webkit-scrollbar { width: 3px; }
+  .conversation::-webkit-scrollbar-track { background: transparent; }
+  .conversation::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .message {
+    margin-bottom: 20px;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  .message-user {
+    text-align: right;
+  }
+  .message-user .bubble {
+    display: inline-block;
+    background: rgba(216, 106, 61, 0.07);
+    border: 1px solid rgba(216, 106, 61, 0.12);
+    padding: 14px 20px;
+    border-radius: 16px 16px 4px 16px;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 85%;
+    text-align: left;
+    color: var(--text-bright);
+  }
+
+  .message-ai .bubble {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 20px;
+    border-radius: 16px 16px 16px 4px;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 85%;
+  }
+
+  .message-ai .label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-soft);
+    margin-bottom: 6px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Typing indicator */
+  .typing {
+    display: flex;
+    gap: 5px;
+    padding: 14px 20px;
+  }
+  .typing span {
+    width: 5px;
+    height: 5px;
+    background: var(--accent-soft);
+    border-radius: 50%;
+    animation: typingDot 1.4s ease-in-out infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Fixed input at bottom when in conversation mode */
+  .input-fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 40px 32px;
+    background: linear-gradient(transparent, var(--bg) 35%);
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+  }
+  .input-fixed .input-wrapper {
+    max-width: 540px;
+  }
+
+  /* Particles */
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  /* Perth badge */
+  .perth-badge {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    opacity: 0;
+    animation: fadeUp 1s cubic-bezier(0.23, 1, 0.32, 1) 1.2s forwards;
+    z-index: 1;
+    text-transform: uppercase;
+  }
+  .perth-badge span {
+    color: var(--accent-soft);
+    opacity: 0.5;
+  }
+  .container.has-conversation ~ .perth-badge {
+    display: none;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes typingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+    30% { transform: translateY(-4px); opacity: 0.8; }
+  }
+
+  /* Lead capture card */
+  .lead-card {
+    width: 100%;
+    max-width: 540px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: fadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+  .lead-card-inner {
+    background: var(--surface-raised);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .lead-card-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(216, 106, 61, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .lead-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .lead-card p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    position: relative;
+  }
+  .lead-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+  }
+  .lead-row {
+    display: flex;
+    gap: 10px;
+  }
+  .lead-field {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-bright);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s ease;
+    cursor: none;
+  }
+  .lead-field::placeholder {
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+  .lead-field:focus {
+    border-color: rgba(216, 106, 61, 0.3);
+  }
+  .lead-submit {
+    padding: 12px 24px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: none;
+    transition: opacity 0.3s ease, transform 0.15s ease;
+  }
+  .lead-submit:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  .lead-submit:disabled {
+    opacity: 0.5;
+    transform: none;
+  }
+  .lead-success {
+    text-align: center;
+    padding: 20px;
+  }
+  .lead-success .check {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .lead-success p {
+    color: var(--text);
+    margin-bottom: 0;
+    font-size: 14px;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .wordmark { font-size: 26px; margin-bottom: 44px; }
+    .subtitle { margin-top: -32px; margin-bottom: 44px; }
+    .container { padding: 24px; }
+    .container.has-conversation { padding-top: 24px; }
+    .input-fixed { padding: 16px 24px 24px; }
+    .input-field { font-size: 15px; padding: 16px 48px 16px 20px; }
+    .perth-badge { bottom: 20px; }
+    body::before { opacity: 0.02; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="ambient" id="ambient"></div>
+<div class="grid-bg"></div>
+<div class="vignette"></div>
+<div class="particles" id="particles"></div>
+
+<!-- Initial state: centered -->
+<div class="container" id="container">
+  <div class="wordmark">Good<span class="apos">'</span>ai</div>
+  <div class="subtitle">business automations, sorted</div>
+
+  <div class="input-area" id="inputArea">
+    <form id="chatForm" class="input-wrapper">
+      <input
+        type="text"
+        class="input-field"
+        id="chatInput"
+        placeholder="Tell us your problem."
+        autocomplete="off"
+        autofocus
+      >
+      <button type="submit" class="submit-btn" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </form>
+    <div class="input-hint">We'll figure out how to fix it.</div>
+  </div>
+
+  <div class="conversation" id="conversation" style="display: none;"></div>
+</div>
+
+<!-- Fixed input for conversation mode -->
+<div class="input-fixed" id="inputFixed" style="display: none;">
+  <form id="chatFormFixed" class="input-wrapper">
+    <input
+      type="text"
+      class="input-field"
+      id="chatInputFixed"
+      placeholder="Tell us more..."
+      autocomplete="off"
+    >
+    <button type="submit" class="submit-btn" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+  </form>
+</div>
+
+<div class="perth-badge">Perth <span>/</span> WA</div>
+
+<script>
+  // ── CURSOR ──
+  const cursor = document.getElementById('cursor');
+  const ambient = document.getElementById('ambient');
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+  let cursorX = mouseX;
+  let cursorY = mouseY;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    ambient.style.transform = `translate(${mouseX - 350}px, ${mouseY - 350}px)`;
+  });
+
+  // Smooth cursor follow
+  function animateCursor() {
+    cursorX += (mouseX - cursorX) * 0.12;
+    cursorY += (mouseY - cursorY) * 0.12;
+    cursor.style.left = cursorX + 'px';
+    cursor.style.top = cursorY + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  // Cursor hover states
+  document.querySelectorAll('input, button, a').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+  });
+
+  // ── PARTICLES ──
+  const particlesEl = document.getElementById('particles');
+  const particleCount = 50;
+
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+
+    // Mix of copper and warm white particles
+    const isCopperParticle = Math.random() > 0.6;
+    if (isCopperParticle) {
+      p.style.background = `rgba(216, 106, 61, ${Math.random() * 0.2 + 0.05})`;
+      p.style.width = (Math.random() * 2 + 1.5) + 'px';
+      p.style.height = p.style.width;
+    } else {
+      p.style.background = `rgba(215, 210, 203, ${Math.random() * 0.12 + 0.03})`;
+      p.style.width = (Math.random() * 1.5 + 1) + 'px';
+      p.style.height = p.style.width;
+    }
+
+    p.dataset.speedX = (Math.random() - 0.5) * 0.3;
+    p.dataset.speedY = (Math.random() - 0.5) * 0.3;
+    p.dataset.baseX = parseFloat(p.style.left);
+    p.dataset.baseY = parseFloat(p.style.top);
+    particlesEl.appendChild(p);
+  }
+
+  // Particles react to cursor
+  function animateParticles() {
+    const particles = particlesEl.children;
+    const cx = (mouseX / window.innerWidth) * 100;
+    const cy = (mouseY / window.innerHeight) * 100;
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      const bx = parseFloat(p.dataset.baseX);
+      const by = parseFloat(p.dataset.baseY);
+      const dx = cx - bx;
+      const dy = cy - by;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const push = Math.max(0, 18 - dist) * 0.18;
+      const px = bx - (dx / dist) * push || bx;
+      const py = by - (dy / dist) * push || by;
+
+      p.style.left = px + '%';
+      p.style.top = py + '%';
+    }
+    requestAnimationFrame(animateParticles);
+  }
+  animateParticles();
+
+  // ── CHAT ──
+  const container = document.getElementById('container');
+  const inputArea = document.getElementById('inputArea');
+  const conversation = document.getElementById('conversation');
+  const inputFixed = document.getElementById('inputFixed');
+  const chatForm = document.getElementById('chatForm');
+  const chatFormFixed = document.getElementById('chatFormFixed');
+  const chatInput = document.getElementById('chatInput');
+  const chatInputFixed = document.getElementById('chatInputFixed');
+  const perthBadge = document.querySelector('.perth-badge');
+
+  let isConversationMode = false;
+  let messageHistory = [];
+  let isWaiting = false;
+  let aiResponseCount = 0;
+  let leadCaptured = false;
+
+  // Real AI endpoint
+  const API_URL = '/api/chat';
+  // Web3Forms — free form endpoint, sends to email + you get a dashboard
+  // Sign up at web3forms.com, grab your access key, paste it here
+  const FORM_API = 'https://api.web3forms.com/submit';
+  const FORM_KEY = 'YOUR_WEB3FORMS_KEY'; // ← replace with your key from web3forms.com
+
+  async function getResponse(msg) {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messageHistory }),
+      });
+      const data = await res.json();
+      return data.response || "Something went sideways. Try again?";
+    } catch (err) {
+      console.error('Chat error:', err);
+      return "Couldn't reach our servers. Check your connection and try again.";
+    }
+  }
+
+  function addMessage(text, type) {
+    const div = document.createElement('div');
+    div.className = `message message-${type}`;
+
+    if (type === 'ai') {
+      div.innerHTML = `<div class="label">Good'ai</div><div class="bubble">${text}</div>`;
+    } else {
+      div.innerHTML = `<div class="bubble">${text}</div>`;
+    }
+
+    conversation.appendChild(div);
+    conversation.scrollTop = conversation.scrollHeight;
+  }
+
+  // ── LEAD CAPTURE ──
+  function showLeadCard() {
+    if (leadCaptured || document.getElementById('leadCard')) return;
+
+    const card = document.createElement('div');
+    card.className = 'lead-card';
+    card.id = 'leadCard';
+    card.innerHTML = `
+      <div class="lead-card-inner">
+        <h3>Want us to look into this?</h3>
+        <p>Drop your details and we'll scope it out — no obligation, no runaround.</p>
+        <form id="leadForm" class="lead-fields">
+          <div class="lead-row">
+            <input type="text" class="lead-field" id="leadName" placeholder="Name" required>
+            <input type="text" class="lead-field" id="leadBusiness" placeholder="Business name">
+          </div>
+          <div class="lead-row">
+            <input type="tel" class="lead-field" id="leadPhone" placeholder="Phone" required>
+            <input type="email" class="lead-field" id="leadEmail" placeholder="Email (optional)">
+          </div>
+          <button type="submit" class="lead-submit">Get a callback</button>
+        </form>
+      </div>
+    `;
+
+    conversation.appendChild(card);
+    conversation.scrollTop = conversation.scrollHeight;
+
+    // Register hover for new inputs
+    card.querySelectorAll('input, button').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+    });
+
+    // Handle lead form submit
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = card.querySelector('.lead-submit');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      const convo = messageHistory
+        .map(m => `${m.role === 'user' ? 'Them' : 'Us'}: ${m.content}`)
+        .join('\n');
+
+      try {
+        await fetch(FORM_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_key: FORM_KEY,
+            subject: 'New lead: ' + document.getElementById('leadName').value.trim(),
+            from_name: 'Good\'ai Website',
+            name: document.getElementById('leadName').value.trim(),
+            business: document.getElementById('leadBusiness').value.trim(),
+            phone: document.getElementById('leadPhone').value.trim(),
+            email: document.getElementById('leadEmail').value.trim() || '(not provided)',
+            problem: messageHistory.find(m => m.role === 'user')?.content || '',
+            conversation: convo,
+          }),
+        });
+      } catch (err) {
+        console.error('Form error:', err);
+      }
+
+      leadCaptured = true;
+      card.querySelector('.lead-card-inner').innerHTML = `
+        <div class="lead-success">
+          <div class="check">&#10003;</div>
+          <p>Nice one. We'll be in touch within 24 hours.</p>
+        </div>
+      `;
+      conversation.scrollTop = conversation.scrollHeight;
+    });
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'message message-ai';
+    div.id = 'typing';
+    div.innerHTML = `<div class="label">Good'ai</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    conversation.appendChild(div);
+    conversation.scrollTop = conversation.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing');
+    if (el) el.remove();
+  }
+
+  function enterConversationMode() {
+    if (isConversationMode) return;
+    isConversationMode = true;
+    container.classList.add('has-conversation');
+    conversation.style.display = 'block';
+    inputArea.style.display = 'none';
+    inputFixed.style.display = 'flex';
+    if (perthBadge) perthBadge.style.display = 'none';
+    chatInputFixed.focus();
+
+    // Re-register hover for new inputs
+    document.querySelectorAll('input, button, a').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+    });
+  }
+
+  async function handleSubmit(text) {
+    if (!text.trim() || isWaiting) return;
+
+    if (!isConversationMode) {
+      enterConversationMode();
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    isWaiting = true;
+    setInputDisabled(true);
+
+    addMessage(text, 'user');
+    messageHistory.push({ role: 'user', content: text });
+
+    showTyping();
+
+    const response = await getResponse(text);
+
+    removeTyping();
+
+    addMessage(response, 'ai');
+    messageHistory.push({ role: 'ai', content: response });
+
+    aiResponseCount++;
+
+    // Show lead capture after first AI response
+    if (aiResponseCount === 1 && !leadCaptured) {
+      await new Promise(r => setTimeout(r, 600));
+      showLeadCard();
+    }
+
+    isWaiting = false;
+    setInputDisabled(false);
+    if (isConversationMode) chatInputFixed.focus();
+  }
+
+  function setInputDisabled(disabled) {
+    chatInput.disabled = disabled;
+    chatInputFixed.disabled = disabled;
+    chatInput.style.opacity = disabled ? '0.5' : '1';
+    chatInputFixed.style.opacity = disabled ? '0.5' : '1';
+  }
+
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    chatInput.value = '';
+    handleSubmit(text);
+  });
+
+  chatFormFixed.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = chatInputFixed.value.trim();
+    chatInputFixed.value = '';
+    handleSubmit(text);
+  });
+
+  // ── GRID PARALLAX ──
+  const gridBg = document.querySelector('.grid-bg');
+  document.addEventListener('mousemove', (e) => {
+    const rx = (e.clientX / window.innerWidth - 0.5) * 10;
+    const ry = (e.clientY / window.innerHeight - 0.5) * 10;
+    gridBg.style.transform = `translate(${rx}px, ${ry}px)`;
+  });
+
+  // Hide custom cursor on mobile
+  if ('ontouchstart' in window) {
+    document.body.style.cursor = 'auto';
+    cursor.style.display = 'none';
+    ambient.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
