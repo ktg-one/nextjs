@@ -92,10 +92,11 @@ Plans:
   3. Page loads under 2 seconds on a 4G connection with Lighthouse performance score 90+
   4. Site is live on goodai.au via Vercel with zero console errors in production
   5. AI_GATEWAY_API_KEY is server-side only and never exposed to the browser
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Responsive layout + mobile touch/shader optimizations (RESP-01..05)
+- [ ] 05-02-PLAN.md — Production deployment, env security, Lighthouse audit (DEPL-01..05)
 
 ## Progress
 
@@ -108,4 +109,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Visual Layer | 0/? | Not started | - |
 | 3. Chat Core | 0/? | Not started | - |
 | 4. Lead Capture | 0/? | Not started | - |
-| 5. Polish + Hardening | 0/? | Not started | - |
+| 5. Polish + Hardening | 0/2 | Not started | - |
